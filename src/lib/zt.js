@@ -1,47 +1,113 @@
 import got from 'got';
-import { Address4, Address6 } from 'ip-address';
-import { getToken } from './token';
+import { getItem } from './db/storage';
 
-const ZT_ADDR = process.env.ZT_ADDR || 'http://localhost:9993';
+const ENV_ZT_ADDR = process.env.ZT_ADDR || 'http://localhost:9993';
 
 // Mock Data Store
 let mockNetworks = [
     { nwid: 'mock_nwid_123456', name: 'Mock Network 1', status: 'OK' }
 ];
 
+async function getZtConfig() {
+    const config = await getItem('zt_config') || {};
+    return {
+        addr: config.ztAddr || ENV_ZT_ADDR,
+        token: config.ztToken
+    };
+}
+
 async function initOptions() {
     try {
-        const tok = await getToken();
+        const { addr, token } = await getZtConfig();
+        const tok = token || await getToken(); // Use DB token or fallback to file/env
+
         return {
             options: {
+                // Removed to avoid conflict with absolute URLs used below
                 responseType: 'json',
-                headers: { 'X-ZT1-Auth': tok }
+                headers: { 'X-ZT1-Auth': tok },
+                timeout: {
+                    lookup: 1000,
+                    connect: 5000,
+                    secureConnect: 5000,
+                    socket: 10000,
+                    send: 10000,
+                    response: 30000
+                },
+                retry: {
+                    limit: 2,
+                    methods: ['GET', 'POST', 'DELETE'],
+                    statusCodes: [408, 413, 429, 500, 502, 503, 504]
+                },
+                // Allow self-signed certs (common for localhost/internal ZT controllers)
+                https: { rejectUnauthorized: false },
+                hooks: {
+                    beforeRequest: [
+                        options => {
+                            console.log(`[ZT-API] Request: ${options.method} ${options.url}`);
+                        }
+                    ],
+                    afterResponse: [
+                        response => {
+                            console.log(`[ZT-API] Response: ${response.statusCode} ${response.url}`);
+                            if (response.body) {
+                                try {
+                                    console.log(`[ZT-API] Body:`, JSON.stringify(response.body).substring(0, 1000));
+                                } catch (e) { /* ignore */ }
+                            }
+                            return response;
+                        }
+                    ],
+                    beforeError: [
+                        error => {
+                            console.log(`[ZT-API] Error: ${error.message} ${error.request?.requestUrl || ''}`);
+                            return error;
+                        }
+                    ]
+                }
             },
-            isMock: false
+            isMock: false,
+            // Pass addr back if needed specifically, but prefixUrl handles requests
+            baseUrl: addr
         };
     } catch (e) {
-        console.warn("Could not find ZT Token. Using MOCK mode.");
+        console.error("ZeroTier Init Error:", e.message);
+        // Reseting mock data to default but with error message
+        mockNetworks = [
+            {
+                nwid: 'mock_error',
+                name: `MOCK MODE - Error: ${e.message}`,
+                status: 'ERROR'
+            }
+        ];
+
         return {
             options: { responseType: 'json' },
-            isMock: true
+            isMock: true,
+            baseUrl: ''
         };
     }
 }
 
+// Re-export getNetworks properly
 export async function getNetworks() {
     try {
-        const { options, isMock } = await initOptions();
+        const { options, isMock, baseUrl } = await initOptions();
         if (isMock) {
             return mockNetworks;
         }
 
-        const response = await got(`${ZT_ADDR}/controller/network`, options);
+        // Note: got options has prefixUrl set if we entered initOptions successfully
+        // But to be consistent with existing code structure which used template literal with global var:
+        // We will use the baseUrl returned from initOptions
+
+        const response = await got(`${baseUrl}/controller/network`, options);
         const nwids = response.body;
 
         const networks = [];
         for (const nwid of nwids) {
             try {
-                const netRes = await got(`${ZT_ADDR}/controller/network/${nwid}`, options);
+                const netRes = await got(`${baseUrl}/controller/network/${nwid}`, options);
                 networks.push(netRes.body);
             } catch (innerErr) {
                 console.error(`Failed to fetch details for network ${nwid}:`, innerErr);
@@ -49,18 +115,26 @@ export async function getNetworks() {
         }
         return networks;
     } catch (err) {
+        if (err.response && (err.response.statusCode === 401 || err.response.statusCode === 403)) {
+            console.error(`ZeroTier API Unauthorized: ${err.message}`);
+            throw new Error("Invalid ZeroTier API Token");
+        }
+        if (err.code === 'ECONNREFUSED' || err.code === 'ECONNRESET' || err.code === 'ENOTFOUND') {
+            console.error(`ZeroTier Controller Unreachable: ${err.message}`);
+            throw new Error("ZeroTier Controller Unreachable");
+        }
         console.error("Error in getNetworks:", err);
         throw err;
     }
 }
 
 export async function getNetwork(nwid) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) {
         return mockNetworks.find(n => n.nwid === nwid) || { nwid, name: 'Unknown Mock' };
     }
     try {
-        const response = await got(`${ZT_ADDR}/controller/network/${nwid}`, options);
+        const response = await got(`${baseUrl}/controller/network/${nwid}`, options);
         return response.body;
     } catch (err) {
         if (err.response && err.response.statusCode === 404) {
@@ -71,7 +145,7 @@ export async function getNetwork(nwid) {
 }
 
 export async function updateNetwork(nwid, data) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) {
         const idx = mockNetworks.findIndex(n => n.nwid === nwid);
         if (idx !== -1) mockNetworks[idx] = { ...mockNetworks[idx], ...data };
@@ -79,12 +153,12 @@ export async function updateNetwork(nwid, data) {
     }
     options.method = 'POST';
     options.json = data;
-    const response = await got(`${ZT_ADDR}/controller/network/${nwid}`, options);
+    const response = await got(`${baseUrl}/controller/network/${nwid}`, options);
     return response.body;
 }
 
 export async function createNetwork(name) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) {
         const newNet = { nwid: 'mock_' + Date.now(), name, status: 'OK' };
         mockNetworks.push(newNet);
@@ -95,25 +169,25 @@ export async function createNetwork(name) {
     options.method = 'POST';
     options.json = { name };
 
-    const response = await got(`${ZT_ADDR}/controller/network/${address}______`, options);
+    const response = await got(`${baseUrl}/controller/network/${address}______`, options);
     return response.body;
 }
 
 export async function deleteNetwork(nwid) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) {
         mockNetworks = mockNetworks.filter(n => n.nwid !== nwid);
         return { deleted: true };
     }
     options.method = 'DELETE';
-    const response = await got(`${ZT_ADDR}/controller/network/${nwid}`, options);
+    const response = await got(`${baseUrl}/controller/network/${nwid}`, options);
     return { ...response.body, deleted: true };
 }
 
 export async function getMembers(nwid) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) return {};
-    const response = await got(`${ZT_ADDR}/controller/network/${nwid}/member`, options);
+    const response = await got(`${baseUrl}/controller/network/${nwid}/member`, options);
     let member_ids = response.body;
     // Fix weird data returned by some ZT versions
     if (Array.isArray(member_ids)) {
@@ -133,41 +207,41 @@ export async function getMembers(nwid) {
 }
 
 export async function getMember(nwid, memberId) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) return { id: memberId, name: 'Mock Member' };
-    const response = await got(`${ZT_ADDR}/controller/network/${nwid}/member/${memberId}`, options);
+    const response = await got(`${baseUrl}/controller/network/${nwid}/member/${memberId}`, options);
     return response.body;
 }
 
 export async function updateMember(nwid, memberId, data) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) return { ...data, id: memberId };
     options.method = 'POST';
     options.json = data;
-    const response = await got(`${ZT_ADDR}/controller/network/${nwid}/member/${memberId}`, options);
+    const response = await got(`${baseUrl}/controller/network/${nwid}/member/${memberId}`, options);
     return response.body;
 }
 
 export async function deleteMember(nwid, memberId) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) return { deleted: true };
     options.method = 'DELETE';
-    const response = await got(`${ZT_ADDR}/controller/network/${nwid}/member/${memberId}`, options);
+    const response = await got(`${baseUrl}/controller/network/${nwid}/member/${memberId}`, options);
     return { ...response.body, deleted: true };
 }
 
 export async function getPeers() {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) return [];
-    const response = await got(`${ZT_ADDR}/peer`, options);
+    const response = await got(`${baseUrl}/peer`, options);
     return response.body;
 }
 
 export async function getPeer(id) {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) return null;
     try {
-        const response = await got(`${ZT_ADDR}/peer/${id}`, options);
+        const response = await got(`${baseUrl}/peer/${id}`, options);
         return response.body;
     } catch (error) {
         return null;
@@ -175,9 +249,9 @@ export async function getPeer(id) {
 }
 
 export async function getStatus() {
-    const { options, isMock } = await initOptions();
+    const { options, isMock, baseUrl } = await initOptions();
     if (isMock) return { address: 'mock_addr', version: '1.0.0 MOCK' };
-    const response = await got(`${ZT_ADDR}/status`, options);
+    const response = await got(`${baseUrl}/status`, options);
     return response.body;
 }
 

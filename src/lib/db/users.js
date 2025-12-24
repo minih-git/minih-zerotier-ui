@@ -1,8 +1,9 @@
 import fs from 'fs/promises';
 import { constants } from 'fs';
 import argon2 from 'argon2';
+import path from 'path';
 
-const PASSWD_FILE = process.env.PASSWD_FILE || '../etc/passwd'; // Adjust path for Next.js root
+const PASSWD_FILE = process.env.PASSWD_FILE || path.join(process.cwd(), 'data', 'passwd'); // Adjust path for Docker/Next.js root
 const MIN_PASS_LEN = 10;
 
 let _users = null;
@@ -20,6 +21,12 @@ async function getUsers() {
 }
 
 async function saveUsers(users) {
+    // Ensure directory exists
+    const dir = path.dirname(PASSWD_FILE);
+    try {
+        await fs.mkdir(dir, { recursive: true });
+    } catch (e) { }
+
     await fs.writeFile(PASSWD_FILE, JSON.stringify(users), 'utf8');
     try {
         await fs.chmod(PASSWD_FILE, 0o600);
@@ -56,6 +63,7 @@ export async function createUser(username, password) {
     };
 
     await saveUsers(users);
+    await writeLockFile();
     return users[username];
 }
 
@@ -90,4 +98,30 @@ export async function listUsers() {
         const { hash, ...safe } = u;
         return safe;
     });
+}
+
+export async function hasAnyUser() {
+    const users = await getUsers();
+    return Object.keys(users).length > 0;
+}
+
+export async function isSystemInitialized() {
+    if (await hasAnyUser()) return true;
+    try {
+        const lockFile = path.join(path.dirname(PASSWD_FILE), 'setup.lock');
+        await fs.access(lockFile);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function writeLockFile() {
+    const dir = path.dirname(PASSWD_FILE);
+    try {
+        await fs.mkdir(dir, { recursive: true });
+        await fs.writeFile(path.join(dir, 'setup.lock'), 'LOCKED', 'utf8');
+    } catch (e) {
+        console.error('Failed to write lock file', e);
+    }
 }

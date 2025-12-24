@@ -3,7 +3,7 @@ const argon2 = require('argon2');
 const fs = require('fs');
 const path = require('path');
 
-const PASSWD_FILE = path.join(__dirname, '..', '..', 'etc', 'passwd');
+const PASSWD_FILE = path.join(process.cwd(), 'data', 'passwd');
 
 async function createDefaultUser() {
     const defaultUser = 'admin';
@@ -31,7 +31,7 @@ async function createDefaultUser() {
         console.log(`Successfully wrote to ${PASSWD_FILE}`);
 
         // Also ensure storage dir exists while we are at it
-        const STORAGE_DIR = path.join(__dirname, '..', '..', 'etc', 'storage');
+        const STORAGE_DIR = path.join(process.cwd(), 'data', 'storage');
         if (!fs.existsSync(STORAGE_DIR)) {
             fs.mkdirSync(STORAGE_DIR, { recursive: true });
         }

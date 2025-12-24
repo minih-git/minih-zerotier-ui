@@ -5,7 +5,7 @@
 ## 前置条件
 
 - **Docker：** (用于 Docker 部署) 确保已安装并运行 Docker。
-- **Node.js：** (用于手动部署) Node.js 18.17 或更高版本。
+- **Node.js：** (用于手动部署) Node.js 20.9.0 或更高版本。
 
 ## 方法 1：Docker 部署（推荐）
 
@@ -22,18 +22,31 @@
     启动容器并映射端口 3000：
 
     ```bash
-    docker run -p 3000:3000 next-ui-app
+    docker run -p 3000:3000 -v $(pwd)/data:/app/data next-ui-app
     ```
+
+    > [!TIP]
+    > 挂载 `/app/data` 目录以确保存储的账号信息和配置在容器重启或更新后能够持久化。
 
     应用程序随后可以通过 `http://localhost:3000` 访问。
 
 3. **环境变量**
 
-    要传递环境变量（例如数据库凭据），请使用 `-e` 标志或 env 文件：
+    要传递环境变量（例如数据库凭据或 ZeroTier 配置），请使用 `-e` 标志：
 
     ```bash
-    docker run -p 3000:3000 -e DATABASE_URL="your_db_url" next-ui-app
+    # 示例：连接到通过宿主机访问的 ZeroTier 控制器
+    docker run -p 3000:3000 \
+      -e ZT_ADDR="http://host.docker.internal:9993" \
+      -e ZT_TOKEN="your_auth_token_here" \
+      -v $(pwd)/data:/app/data \
+      next-ui-app
     ```
+
+    | 变量名 | 默认值 | 说明 |
+    |--------|--------|------|
+    | `ZT_ADDR` | `http://host.docker.internal:9993` (Docker) 或 `http://localhost:9993` (Local) | ZeroTier 控制器 API 地址。在 Docker 中如果控制器在宿主机上，请使用 `host.docker.internal` (Windows/Mac) 或宿主机 IP。 |
+    | `ZT_TOKEN` | 空 (自动探测) | ZeroTier API 认证 Token (`authtoken.secret` 内容)。如果不提供，程序会尝试自动在常见路径查找。 |
 
 ## 方法 2：手动 Node.js 部署
 

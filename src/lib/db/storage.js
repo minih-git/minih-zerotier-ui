@@ -1,7 +1,7 @@
 import storage from 'node-persist';
 import path from 'path';
 
-const STORAGE_DIR = process.env.STORAGE_DIR || '../etc/storage';
+const STORAGE_DIR = process.env.STORAGE_DIR || path.join(process.cwd(), 'data', 'storage');
 
 let initialized = false;
 

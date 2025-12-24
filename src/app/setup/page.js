@@ -1,31 +1,34 @@
 "use client";
 
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import styles from './login.module.css';
+import styles from '../login/login.module.css';
 
-export default function LoginPage() {
+export default function SetupPage() {
     const router = useRouter();
-    const [username, setUsername] = useState('');
+    const [username, setUsername] = useState('admin');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [checking, setChecking] = useState(true);
+    const [initError, setInitError] = useState('');
 
     useEffect(() => {
         const checkStatus = async () => {
             try {
                 const res = await fetch('/api/auth/status');
                 const data = await res.json();
-                if (!data.initialized) {
-                    router.push('/setup');
+                if (data.initialized) {
+                    router.push('/login');
                 } else {
                     setChecking(false);
                 }
             } catch (err) {
+                setInitError('Failed to connect to server. Please ensure the backend is running.');
                 setChecking(false);
             }
         };
@@ -35,10 +38,21 @@ export default function LoginPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (password !== confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
+        if (password.length < 10) {
+            setError('Password must be at least 10 characters long');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const res = await fetch('/api/auth/login', {
+            const res = await fetch('/api/auth/setup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
@@ -47,9 +61,9 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (res.ok && data.success) {
-                router.push('/dashboard');
+                router.push('/login');
             } else {
-                setError(data.error || 'Login failed');
+                setError(data.error || 'Setup failed');
             }
         } catch (err) {
             setError('An error occurred. Please try again.');
@@ -60,17 +74,30 @@ export default function LoginPage() {
 
     if (checking) return null;
 
+    if (initError) {
+        return (
+            <div className={styles.container}>
+                <div className={styles.card}>
+                    <div className={styles.header}>
+                        <h1 className={styles.title} style={{ color: '#ef4444' }}>System Error</h1>
+                        <p className={styles.subtitle}>{initError}</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.card}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>Welcome Back</h1>
-                    <p className={styles.subtitle}>Sign in to manage your ZeroTier networks</p>
+                    <h1 className={styles.title}>System Setup</h1>
+                    <p className={styles.subtitle}>Create your initial administrator account</p>
                 </div>
 
                 <form className={styles.form} onSubmit={handleSubmit}>
                     <Input
-                        label="Username"
+                        label="Admin Username"
                         type="text"
                         placeholder="admin"
                         value={username}
@@ -78,26 +105,29 @@ export default function LoginPage() {
                         required
                     />
                     <Input
-                        label="Password"
+                        label="Admin Password"
                         type="password"
-                        placeholder="••••••••"
+                        placeholder="Min 10 characters"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                    <Input
+                        label="Confirm Password"
+                        type="password"
+                        placeholder="Confirm password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                     />
 
                     {error && <div style={{ color: 'red', marginBottom: '1rem', fontSize: '0.9rem' }}>{error}</div>}
 
                     <Button variant="primary" type="submit" className={styles.submitButton} disabled={loading}>
-                        {loading ? 'Signing in...' : 'Sign In'}
+                        {loading ? 'Initializing...' : 'Create Admin Account'}
                     </Button>
                 </form>
-
-                <div className={styles.footer}>
-                    {/* Default login hint removed */}
-                </div>
             </div>
         </div>
     );
 }
-
