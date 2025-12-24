@@ -1,0 +1,48 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.label {
+    font-size: 0.85rem;
+    color: hsl(var(--color-text-dim));
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.input {
+    background: hsl(var(--color-surface));
+    border: 1px solid hsl(var(--color-border));
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    color: hsl(var(--color-text));
+    font-size: 0.95rem;
+    transition: all var(--transition-fast);
+    width: 100%;
+    font-family: inherit;
+}
+
+.input:hover {
+    border-color: hsl(var(--color-text-dim));
+}
+
+.input:focus {
+    outline: none;
+    border-color: hsl(var(--color-primary));
+    background: hsl(var(--color-surface-hover));
+    box-shadow: 0 0 0 1px hsl(var(--color-primary));
+}
+
+.input.error {
+    border-color: hsl(var(--color-danger));
+    background: hsla(var(--color-danger), 0.05);
+}
+
+.errorText {
+    font-size: 0.8rem;
+    color: hsl(var(--color-danger));
+    font-weight: 500;
+}

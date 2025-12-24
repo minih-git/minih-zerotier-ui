@@ -1,0 +1,61 @@
+.container {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at top right, hsla(var(--color-primary), 0.1), transparent),
+        radial-gradient(circle at bottom left, hsla(var(--color-primary), 0.05), transparent);
+    background-color: hsl(var(--color-background));
+}
+
+.card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 48px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, hsl(var(--color-text)) 0%, hsl(var(--color-text-dim)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    color: hsl(var(--color-text-dim));
+    font-size: 1rem;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.submitButton {
+    width: 100%;
+    height: 48px;
+    font-size: 1rem;
+    margin-top: 8px;
+}
+
+.footer {
+    margin-top: 32px;
+    text-align: center;
+    color: hsl(var(--color-text-dim));
+    font-size: 0.85rem;
+    opacity: 0.6;
+}

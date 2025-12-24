@@ -1,0 +1,57 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 32px;
+}
+
+.header {
+    margin-bottom: 40px;
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, hsl(var(--color-text)) 0%, hsl(var(--color-text-dim)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    color: hsl(var(--color-text-dim));
+    font-size: 1.1rem;
+}
+
+.card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.cancelBtn {
+    background: transparent;
+    border: 1px solid hsl(var(--color-border));
+    color: hsl(var(--color-text-dim));
+}
+
+.cancelBtn:hover {
+    background: hsla(255, 255%, 255%, 0.05);
+    color: hsl(var(--color-text));
+    border-color: hsl(var(--color-text-dim));
+}

@@ -1,0 +1,130 @@
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: hsl(var(--color-surface));
+    border-right: 1px solid hsl(var(--color-border));
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    padding: 32px 24px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brandIcon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, hsl(var(--color-primary)), hsl(var(--color-primary-dark)));
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+}
+
+.brandName {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: hsl(var(--color-text));
+    letter-spacing: -0.02em;
+}
+
+.nav {
+    flex: 1;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    color: hsl(var(--color-text-dim));
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.navItem:hover {
+    background: hsl(var(--color-background));
+    color: hsl(var(--color-text));
+}
+
+.active {
+    background: hsl(var(--color-primary) / 0.1);
+    color: hsl(var(--color-primary));
+    font-weight: 600;
+}
+
+.active .icon {
+    /* Optional: fill icon or change stroke */
+}
+
+.footer {
+    padding: 24px;
+    border-top: 1px solid hsl(var(--color-border));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.userProfile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid hsl(var(--color-surface));
+    box-shadow: 0 0 0 1px hsl(var(--color-border));
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.userName {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: hsl(var(--color-text));
+}
+
+.userRole {
+    font-size: 0.75rem;
+    color: hsl(var(--color-text-dim));
+}
+
+.logoutBtn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: hsl(var(--color-text-dim));
+    transition: all var(--transition-fast);
+}
+
+.logoutBtn:hover {
+    background: hsl(var(--color-danger) / 0.1);
+    color: hsl(var(--color-danger));
+}

@@ -1,0 +1,93 @@
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    color: hsl(var(--color-text));
+}
+
+.userList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.userCard {
+    background: hsl(var(--color-surface));
+    border: 1px solid hsl(var(--color-border));
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all var(--transition-normal);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.userCard:hover {
+    border-color: hsl(var(--color-primary) / 0.5);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.userName {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: hsl(var(--color-text));
+}
+
+.userRole {
+    font-size: 0.75rem;
+    color: hsl(var(--color-text-dim));
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: hsl(var(--color-background));
+    padding: 2px 8px;
+    border-radius: 4px;
+    align-self: flex-start;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    font-size: 1rem;
+    color: hsl(var(--color-text-dim));
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.modalActions {
+    margin-top: 24px;
+}
