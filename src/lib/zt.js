@@ -1,7 +1,7 @@
 import got from 'got';
 import { getItem } from './db/storage';
 
-const ENV_ZT_ADDR = process.env.ZT_ADDR || 'http://localhost:9993';
+const ENV_ZT_ADDR = process.env.ZT_ADDR || 'http://localhost:9333';
 
 // Mock Data Store
 let mockNetworks = [
@@ -10,6 +10,17 @@ let mockNetworks = [
 
 async function getZtConfig() {
     const config = await getItem('zt_config') || {};
+
+    // Support for new multi-backend structure
+    if (config.backends && Array.isArray(config.backends) && config.backends.length > 0) {
+        const active = config.backends.find(b => b.id === config.activeId) || config.backends[0];
+        return {
+            addr: active.ztAddr || ENV_ZT_ADDR,
+            token: active.ztToken
+        };
+    }
+
+    // Fallback/Legacy support
     return {
         addr: config.ztAddr || ENV_ZT_ADDR,
         token: config.ztToken

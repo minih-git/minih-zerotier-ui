@@ -10,17 +10,38 @@ export async function GET() {
         }
 
         const config = await getItem('zt_config') || {};
+        const defaultAddr = process.env.ZT_ADDR || 'http://localhost:9333';
 
-        // Return config, falling back to env vars for display if not set in DB
-        // (But we only return what is explicitly overriden or safe defaults)
-        const displayConfig = {
-            ztAddr: config.ztAddr || process.env.ZT_ADDR || 'http://localhost:9993',
-            // Don't return full token for security if possible, but for edit we might need it.
-            // Or we just return placeholder if set.
-            ztToken: config.ztToken ? '******' : ''
-        };
+        let backends = [];
+        let activeId = config.activeId;
 
-        return NextResponse.json(displayConfig);
+        // Check availability of new structure
+        if (config.backends && Array.isArray(config.backends)) {
+            backends = config.backends;
+        } else {
+            // Migration / Default
+            // If legacy config exists, use it. Otherwise default.
+            const initialAddr = config.ztAddr || defaultAddr;
+            const initialId = 'default';
+            backends = [{
+                id: initialId,
+                name: 'Default',
+                ztAddr: initialAddr,
+                ztToken: config.ztToken || '' // This will be masked below
+            }];
+            activeId = initialId;
+        }
+
+        // Mask tokens for display
+        const displayBackends = backends.map(b => ({
+            ...b,
+            ztToken: b.ztToken ? '******' : ''
+        }));
+
+        return NextResponse.json({
+            activeId,
+            backends: displayBackends
+        });
     } catch (error) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
@@ -34,19 +55,45 @@ export async function POST(request) {
         }
 
         const body = await request.json();
-        const { ztAddr, ztToken } = body;
+        const { activeId, backends } = body;
+
+        if (!Array.isArray(backends)) {
+            return NextResponse.json({ error: 'Invalid configuration format' }, { status: 400 });
+        }
 
         const currentConfig = await getItem('zt_config') || {};
-
-        const newConfig = {
-            ...currentConfig,
-            ztAddr: ztAddr || currentConfig.ztAddr,
-        };
-
-        // Only update token if provided (not empty string)
-        if (ztToken && ztToken !== '******') {
-            newConfig.ztToken = ztToken;
+        let currentBackends = [];
+        if (currentConfig.backends && Array.isArray(currentConfig.backends)) {
+            currentBackends = currentConfig.backends;
+        } else {
+            // Legacy fallback lookup map
+            currentBackends = [{
+                id: 'default',
+                ztToken: currentConfig.ztToken
+            }];
         }
+
+        // Process backends to handle masked tokens
+        const newBackends = backends.map(newBackend => {
+            // If token is masked, try to find original token
+            if (newBackend.ztToken === '******') {
+                const existing = currentBackends.find(b => b.id === newBackend.id);
+                if (existing && existing.ztToken) {
+                    return { ...newBackend, ztToken: existing.ztToken };
+                }
+                // If we can't find it, well, it remains starred which will break things if it was meant to be functional.
+                // But usually this means "no change".
+                // If it's a new backend with stars, that's invalid input from user, but we'll allow it (it just won't work).
+                return { ...newBackend, ztToken: '' };
+            }
+            return newBackend;
+        });
+
+        // Save new structure
+        const newConfig = {
+            activeId,
+            backends: newBackends
+        };
 
         await setItem('zt_config', newConfig);
 
